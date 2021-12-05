@@ -1,12 +1,11 @@
-from typing import Any
-
-from . import log
-
-import aiofiles
 import importlib
-
 import os
 import sys
+from typing import Any
+
+import aiofiles
+
+from . import log
 
 
 class Import:
@@ -108,6 +107,11 @@ class Testing:
                 pos += 1
                 continue
 
+            if line.strip().startswith("# "):
+                self.line += 1
+                pos += 1
+                continue
+
             if line.startswith("import ") or line.startswith("from "):
                 imp = self._parse_import(line)
                 self.imports[str(imp)] = imp
@@ -127,7 +131,8 @@ class Testing:
                 start = pos
                 pos += 1
 
-                while pos + 1 <= len(code_split) and not code_split[pos].startswith("async def"):
+                while pos + 1 <= len(code_split) and (
+                        not code_split[pos].startswith("async def") or not code_split[pos].startswith("def")):
                     pos += 1
                     self.line += 1
 
@@ -212,10 +217,10 @@ class Testing:
                             fun.pos += 6
 
                             while fun.pos + 1 < len(fun.body):
-                                fun.pos += 1
-
                                 if fun.cursor[0] == "\n":
                                     break
+
+                                fun.pos += 1
 
                             full = fun.body[start:fun.pos + 1]
                             left, right = full.split(" == ")
@@ -227,6 +232,9 @@ class Testing:
                                 if left not in self.idents:
                                     if len(left.split("(")) > 1:
                                         left = await self._parse_and_call_function(left)
+                                    elif (x in right for x in ["+", "-", "*", "/", "**"]):
+                                        # maybe there is another way for doing operations, so i dont have to use eval.
+                                        left = eval(left)
                                     else:
                                         log.fatal(self.locate, f"Identifier `{left}` not found.")
                                         return
@@ -238,6 +246,8 @@ class Testing:
                                     # is function
                                     if len(right.split("(")) > 1:
                                         right = await self._parse_and_call_function(right)
+                                    elif (x in right for x in ["+", "-", "*", "/", "**"]):
+                                        right = eval(right)
                                     else:
                                         log.fatal(self.locate, f"Identifier `{right}` not found.")
                                         return
