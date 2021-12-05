@@ -8,3 +8,6 @@ s just not 100% working well.*
 Only supports ``assert x == y`` so far.
 
 Asynchronous test cases supported.
+
+# Install
+``pip install sithon``
